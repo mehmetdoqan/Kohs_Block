@@ -42,6 +42,7 @@ Projeksiyon üzerinden oynatılabilen, seviyeli ve takım modlu görsel hafıza 
 
 ## 🌐 Canlı Demo
 
+https://mehmetdoqan.github.io/Kohs_Block/
 GitHub Pages üzerinden erişilebilir.
 
 ## 🏫 Kullanım Amacı
