@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>IQ Küpleri — Projeksiyon Pro v13 (Seviye)</title>
+
+<style>
+:root{
+  --cell:110px;
+  --gap:0px;
+  --cellBorder:0px;
+  --radius:0px;
+  --groupGap:0px;
+}
+
+*{box-sizing:border-box;}
+body{
+  margin:0;
+  font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+  background:#0f1220;
+  color:#f3f5ff;
+}
+
+header{
+  padding:18px;
+  display:flex;
+  justify-content:space-between;
+  flex-wrap:wrap;
+  gap:12px;
+  border-bottom:1px solid rgba(255,255,255,0.08);
+  background:linear-gradient(180deg,rgba(255,255,255,0.06),transparent);
+}
+
+.controls{
+  display:flex;
+  flex-wrap:wrap;
+  gap:10px;
+  align-items:center;
+}
+
+.chip{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  padding:10px 12px;
+  background: rgba(255,255,255,0.06);
+  border:1px solid rgba(255,255,255,0.10);
+  border-radius:14px;
+}
+
+label{ font-size:12px; opacity:.9; white-space:nowrap; }
+
+select,input[type="number"]{
+  background:rgba(0,0,0,0.25);
+  color:#f3f5ff;
+  border:1px solid rgba(255,255,255,0.15);
+  border-radius:10px;
+  padding:8px 10px;
+}
+
+input[type="color"]{
+  width:34px;
+  height:34px;
+  padding:0;
+  border:none;
+  background:transparent;
+  cursor:pointer;
+}
+
+input[type="checkbox"]{ transform: translateY(1px); }
+
+button{
+  border:none;
+  border-radius:12px;
+  padding:9px 14px;
+  font-weight:600;
+  cursor:pointer;
+  background:#e9ecff;
+  color:#0f1220;
+}
+
+button.secondary{
+  background:rgba(255,255,255,0.10);
+  color:#f3f5ff;
+}
+
+main{
+  padding:20px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:14px;
+}
+
+.topRow{
+  width:100%;
+  max-width:1400px;
+  display:flex;
+  gap:12px;
+  align-items:center;
+  justify-content:space-between;
+  flex-wrap:wrap;
+}
+
+.badge{
+  padding:10px 12px;
+  border-radius:14px;
+  background: rgba(255,255,255,0.06);
+  border:1px solid rgba(255,255,255,0.10);
+  display:flex;
+  gap:10px;
+  align-items:center;
+  flex-wrap:wrap;
+}
+
+.timer{
+  font-size:26px;
+  font-weight:800;
+  letter-spacing:.3px;
+  font-variant-numeric: tabular-nums;
+}
+
+.small{ font-size:12px; opacity:.9; }
+
+.boards{
+  width:100%;
+  max-width:1400px;
+  display:flex;
+  justify-content:center;
+  gap:var(--groupGap);
+  flex-wrap:wrap;
+}
+
+.boards.grid4{
+  display:grid;
+  grid-template-columns:repeat(2,auto);
+  gap:var(--groupGap);
+  justify-content:center;
+}
+
+.board{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+}
+
+.board h2{
+  margin:10px 0;
+  font-size:18px;
+}
+
+.grid{
+  display:grid;
+  grid-template-columns:repeat(3,var(--cell));
+  grid-template-rows:repeat(3,var(--cell));
+  gap:var(--gap);
+}
+
+.cell{
+  width:var(--cell);
+  height:var(--cell);
+  background:white;
+  border:var(--cellBorder) solid rgba(15,18,32,0.85);
+  border-radius:var(--radius);
+  position:relative;
+  overflow:hidden;
+  transition:all 0.15s ease;
+}
+
+.triangle{position:absolute;width:0;height:0;}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="controls">
+    <div class="chip">
+      <label>Mod</label>
+      <select id="mode">
+        <option value="single">Tekli</option>
+        <option value="teams2">Takım 2'li</option>
+        <option value="teams3">Takım 3'lü</option>
+        <option value="teams4">Takım 4'lü</option>
+      </select>
+    </div>
+
+    <div class="chip">
+      <label>Seviye</label>
+      <select id="level"></select>
+      <span class="small" id="diffText">Kolay</span>
+    </div>
+
+    <div class="chip">
+      <label>Süre</label>
+      <input type="number" id="seconds" value="60" min="5" max="600">
+    </div>
+
+    <div class="chip">
+      <label>Mesafe</label>
+      <input type="range" id="gapSlider" min="0" max="20" value="0">
+    </div>
+
+    <div class="chip">
+      <label><input type="checkbox" id="autoNext" checked> Süre bitince sonraki</label>
+    </div>
+
+    <button id="btnNew">Yeni Şekil</button>
+    <button id="btnNext">Sonraki Seviye</button>
+    <button id="btnStart">Başlat</button>
+    <button id="btnPause">Durdur</button>
+    <button id="btnFull" class="secondary">Tam ekran</button>
+  </div>
+
+  <div class="controls" id="colorControls"></div>
+</header>
+
+<main>
+  <div class="topRow">
+    <div class="badge">
+      <span class="small">Seviye</span>
+      <span class="timer" id="levelBadge">1</span>
+      <span class="small" id="modeBadge">Tekli</span>
+    </div>
+    <div class="badge">
+      <span class="small">Kalan süre</span>
+      <span class="timer" id="timer">60</span>
+      <span class="small" id="timerState">Hazır</span>
+    </div>
+  </div>
+
+  <div id="boards" class="boards"></div>
+</main>
+
+<script>
+let timerHandle=null;
+let timeLeft=60;
+
+const elMode = document.getElementById("mode");
+const elGap = document.getElementById("gapSlider");
+const elBoards = document.getElementById("boards");
+const elColorControls = document.getElementById("colorControls");
+const elLevel = document.getElementById("level");
+const elDiffText = document.getElementById("diffText");
+const elLevelBadge = document.getElementById("levelBadge");
+const elModeBadge = document.getElementById("modeBadge");
+const elTimer = document.getElementById("timer");
+const elTimerState = document.getElementById("timerState");
+const elAutoNext = document.getElementById("autoNext");
+
+const btnNew = document.getElementById("btnNew");
+const btnNext = document.getElementById("btnNext");
+const btnStart = document.getElementById("btnStart");
+const btnPause = document.getElementById("btnPause");
+const btnFull = document.getElementById("btnFull");
+
+let teamColors = [
+  { primary: "#ff0000", secondary: "#ffffff", bg: "#1e293b" },
+  { primary: "#ff0000", secondary: "#ffffff", bg: "#1e293b" },
+  { primary: "#ff0000", secondary: "#ffffff", bg: "#1e293b" },
+  { primary: "#ff0000", secondary: "#ffffff", bg: "#1e293b" },
+];
+
+let patterns = [];
+
+function getBoardCount(){
+  const mode = elMode.value;
+  if(mode==="single") return 1;
+  if(mode==="teams2") return 2;
+  if(mode==="teams3") return 3;
+  return 4;
+}
+
+function getMaxLevel(){
+  return elMode.value === "single" ? 60 : 30;
+}
+
+function difficultyForLevel(level){
+  const mode = elMode.value;
+  if(mode === "single"){
+    if(level <= 20) return "easy";
+    if(level <= 40) return "medium";
+    return "hard";
+  }else{
+    if(level <= 10) return "easy";
+    if(level <= 20) return "medium";
+    return "hard";
+  }
+}
+
+function difficultyLabel(diff){
+  if(diff==="easy") return "Kolay";
+  if(diff==="medium") return "Orta";
+  return "Zor";
+}
+
+function pickType(diff){
+  const r=Math.random();
+  if(diff==="easy"){
+    if(r < 0.55) return "fullWhite";
+    if(r < 0.80) return "fullRed";
+    return ["tl","tr","bl","br"][Math.floor(Math.random()*4)];
+  }
+  if(diff==="medium"){
+    if(r < 0.30) return "fullWhite";
+    if(r < 0.50) return "fullRed";
+    return ["tl","tr","bl","br"][Math.floor(Math.random()*4)];
+  }
+  if(r < 0.10) return "fullWhite";
+  if(r < 0.20) return "fullRed";
+  return ["tl","tr","bl","br"][Math.floor(Math.random()*4)];
+}
+
+function generatePattern(diff){
+  const cells=[];
+  for(let i=0;i<9;i++) cells.push(pickType(diff));
+  return cells;
+}
+
+function setTriangleStyle(tri, dir, size, primary){
+  tri.style.border = "";
+  const s = size;
+  if(dir==="tl"){ tri.style.borderTop = `${s}px solid ${primary}`; tri.style.borderRight = `${s}px solid transparent`; }
+  if(dir==="tr"){ tri.style.borderTop = `${s}px solid ${primary}`; tri.style.borderLeft = `${s}px solid transparent`; }
+  if(dir==="bl"){ tri.style.borderBottom = `${s}px solid ${primary}`; tri.style.borderRight = `${s}px solid transparent`; }
+  if(dir==="br"){ tri.style.borderBottom = `${s}px solid ${primary}`; tri.style.borderLeft = `${s}px solid transparent`; }
+}
+
+function createCell(type, colors){
+  const cell=document.createElement("div");
+  cell.className="cell";
+  cell.style.background = colors.secondary;
+
+  if(type==="fullRed"){ cell.style.background = colors.primary; return cell; }
+  if(type==="fullWhite"){ cell.style.background = colors.secondary; return cell; }
+
+  const size=parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--cell')) || 110;
+  const tri=document.createElement("div");
+  tri.className="triangle";
+  setTriangleStyle(tri, type, size, colors.primary);
+  cell.appendChild(tri);
+  return cell;
+}
+
+function renderBoards(){
+  const boardCount = getBoardCount();
+  elBoards.classList.toggle("grid4", elMode.value==="teams4");
+  elBoards.innerHTML = "";
+
+  for(let b=1;b<=boardCount;b++){
+    const board=document.createElement("div");
+    board.className="board";
+
+    const title=document.createElement("h2");
+    title.textContent = (boardCount===1 ? "Hedef" : `Takım ${b}`);
+
+    const grid=document.createElement("div");
+    grid.className="grid";
+
+    const cells = patterns[b-1]?.cells || [];
+    const colors = teamColors[b-1];
+    board.style.background = colors.bg;
+
+    for(const t of cells){
+      grid.appendChild(createCell(t, colors));
+    }
+
+    if(elMode.value==="teams4" && (b===3 || b===4)){
+      board.appendChild(grid);
+      board.appendChild(title);
+    }else{
+      board.appendChild(title);
+      board.appendChild(grid);
+    }
+
+    elBoards.appendChild(board);
+  }
+}
+
+function rebuildLevels(){
+  const max = getMaxLevel();
+  elLevel.innerHTML = "";
+  for(let i=1;i<=max;i++){
+    const opt=document.createElement("option");
+    opt.value = String(i);
+    opt.textContent = String(i);
+    elLevel.appendChild(opt);
+  }
+  elLevel.value = "1";
+  updateLevelUI();
+}
+
+function updateLevelUI(){
+  const level = parseInt(elLevel.value,10);
+  const diff = difficultyForLevel(level);
+  elDiffText.textContent = difficultyLabel(diff);
+  elLevelBadge.textContent = String(level);
+  elModeBadge.textContent = elMode.options[elMode.selectedIndex].text;
+}
+
+function newPatternForCurrentLevel(){
+  const boardCount = getBoardCount();
+  const level = parseInt(elLevel.value,10);
+  const diff = difficultyForLevel(level);
+
+  patterns = [];
+  for(let i=0;i<boardCount;i++){
+    patterns.push({ cells: generatePattern(diff) });
+  }
+  updateLevelUI();
+  renderBoards();
+}
+
+function nextLevel(){
+  const max = getMaxLevel();
+  let level = parseInt(elLevel.value,10);
+  level = (level >= max) ? 1 : (level + 1);
+  elLevel.value = String(level);
+  newPatternForCurrentLevel();
+  resetTimer();
+  startTimer();
+}
+
+function renderColorControls(){
+  const boardCount = getBoardCount();
+  elColorControls.innerHTML = "";
+
+  for(let i=0;i<boardCount;i++){
+    const chip = document.createElement("div");
+    chip.className = "chip";
+
+    const label = document.createElement("label");
+    label.textContent = (boardCount===1) ? "Renkler" : `Takım ${i+1}`;
+    chip.appendChild(label);
+
+    const p = document.createElement("input");
+    p.type = "color";
+    p.value = teamColors[i].primary;
+    p.title = "Birincil renk";
+    p.addEventListener("input", () => { teamColors[i].primary = p.value; renderBoards(); });
+    chip.appendChild(p);
+
+    const s = document.createElement("input");
+    s.type = "color";
+    s.value = teamColors[i].secondary;
+    s.title = "İkincil renk";
+    s.addEventListener("input", () => { teamColors[i].secondary = s.value; renderBoards(); });
+    chip.appendChild(s);
+
+    // background picker
+    const bg = document.createElement("input");
+    bg.type = "color";
+    bg.value = teamColors[i].bg;
+    bg.title = "Takım arka planı";
+    bg.addEventListener("input", () => {
+      teamColors[i].bg = bg.value;
+      renderBoards();
+    });
+    chip.appendChild(bg);
+
+    elColorControls.appendChild(chip);
+  }
+}
+
+function applySpacing(){
+  const val=parseInt(elGap.value,10);
+  const mode=elMode.value;
+
+  document.documentElement.style.setProperty('--gap',val+"px");
+
+  const border = val===0 ? 0 : Math.max(1,Math.round((val/20)*3));
+  document.documentElement.style.setProperty('--cellBorder',border+"px");
+
+  const radius=Math.round((val/20)*18);
+  document.documentElement.style.setProperty('--radius',radius+"px");
+
+  const maxGap = (mode==="teams4") ? 30 : 50;
+  const groupGap=Math.round((val/20)*maxGap);
+  document.documentElement.style.setProperty('--groupGap',groupGap+"px");
+}
+
+function setTimerState(text){ elTimerState.textContent = text; }
+
+function resetTimer(){
+  stopTimer();
+  timeLeft=parseInt(document.getElementById("seconds").value,10);
+  elTimer.textContent=timeLeft;
+  setTimerState("Hazır");
+}
+
+function stopTimer(){
+  if(timerHandle){
+    clearInterval(timerHandle);
+    timerHandle=null;
+  }
+}
+
+function startTimer(){
+  stopTimer();
+  setTimerState("Çalışıyor");
+  if(timeLeft<=0) resetTimer();
+
+  timerHandle=setInterval(()=>{
+    timeLeft--;
+    elTimer.textContent=timeLeft;
+    if(timeLeft<=0){
+      stopTimer();
+      setTimerState("Bitti");
+      if(elAutoNext.checked){
+        nextLevel();
+      }
+    }
+  },1000);
+}
+
+function pauseTimer(){
+  if(timerHandle){
+    stopTimer();
+    setTimerState("Durdu");
+  }
+}
+
+async function toggleFull(){
+  try{
+    if(!document.fullscreenElement){ await document.documentElement.requestFullscreen(); }
+    else{ await document.exitFullscreen(); }
+  }catch(e){
+    alert("Tarayıcı tam ekranı engelledi.");
+  }
+}
+
+/* Events */
+btnNew.addEventListener("click", () => { newPatternForCurrentLevel(); resetTimer(); startTimer(); });
+btnNext.addEventListener("click", nextLevel);
+btnStart.addEventListener("click", startTimer);
+btnPause.addEventListener("click", pauseTimer);
+btnFull.addEventListener("click", toggleFull);
+
+elGap.addEventListener("input", applySpacing);
+elLevel.addEventListener("change", () => { newPatternForCurrentLevel(); resetTimer(); });
+document.getElementById("seconds").addEventListener("change", resetTimer);
+
+elMode.addEventListener("change", () => {
+  stopTimer();
+  rebuildLevels();
+  renderColorControls();
+  newPatternForCurrentLevel();
+  applySpacing();
+  resetTimer();
+});
+
+/* Init */
+rebuildLevels();
+renderColorControls();
+newPatternForCurrentLevel();
+applySpacing();
+resetTimer();
+</script>
+
+</body>
+</html>
